@@ -1,0 +1,275 @@
+//Clean House
+
+//Delete Nodes & Relationships
+MATCH (n) DETACH DELETE n;
+
+//Drop Indices
+DROP INDEX projectsByID IF EXISTS;
+DROP INDEX packagesByID IF EXISTS;
+DROP INDEX organizationsByID IF EXISTS;
+DROP INDEX initiativesByID IF EXISTS;
+DROP INDEX personsByName IF EXISTS;
+DROP INDEX papersByName IF EXISTS;
+
+//import nodes
+
+/////////////////////////////////////////////IMPORT Projects
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=797434240&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Project
+                       ProjectID: row.ProjectID,
+                       Description: row.Description,
+                       //License
+                       Language: split(row.Language, ' | '),
+                       Dependency: split(row.Dependency, ' | '),
+                       Complementary: split(row.Complementary, ' | '),
+                       Enhancement: split(row.Enhancement, ' | '),
+                       Downstream: split(row.Downstream, ' | '), 
+                       Alternatives: split(row.Alternatives, ' | '),
+                       `Fiscal Sponsor`: row.`Fiscal Sponsor`,
+                       `Granting Organization A | B | C`: row.`Granting Organization A | B | C`,
+                       Domain: row.Domain,
+                       Subdomain: row.Subdomain,
+                       Subfield: split(row.Subfield, ' | ')
+                    }) 
+YIELD node
+RETURN node;
+
+/////////////////////////////////////////////IMPORT Packages
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=815410892&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Package
+                       PackageID: row.PackageID,
+                       `Project/Package's Affiliated Projects`: split(row.`Project/Package's Affiliated Projects`, ' | '),
+                       `Sustaining/Parent`: row.`Sustaining/Parent`,
+                       Subfield: split(row.Subfield, ' | '),
+                       `Project Tags`: split(row.`Project Tags`, ' | '),
+                       Dependency: split(row.Dependency, ' | ')
+                    }) 
+YIELD node
+RETURN node;
+
+
+
+/////////////////////////////////////////////IMPORT Organizations
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=2131543771&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Organization
+                       OrganizationID: row.OrganizationID,
+                       `Consortium Affiliation`: row.`Consortium Affiliation`,
+                       `Org Type`: row.`Org Type`,
+                       `Focus Area`: split(row.`Focus Area`, ' | '),
+                       Location: row.Location,
+                       Website: row.Website,
+                       `Contact Information`: row.`Contact Information`,
+                       `Year Established`: row.`Year Established`,
+                       Status: row.Status,
+                       `Fiscal Sponsor`: row.`Fiscal Sponsor`
+                    }) 
+YIELD node
+RETURN node;
+
+
+
+/////////////////////////////////////////////IMPORT Initiatives
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=708905383&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Initiative
+                       InitiativeID: row.InitiativeID,
+                       `Affiliated Org`: row.`Affiliated Org`,
+                       `Focus Area`: split(row.`Focus Area`, ' | '),
+                       `Initiative Description`: row.`Initiative Description`,
+                       Tag: row.Tag
+                    }) 
+YIELD node
+RETURN node;
+
+/////////////////////////////////////////////IMPORT Papers
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=0&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Paper
+                       PaperName: row.PaperName,
+                       Authors: split(row.Authors, ' | '),
+                       //ORCID
+                       `Publication Date`: row.`Publication Date`,
+                       Journal: row.Journal,
+                       Abstract: row.Abstract,
+                       DOI: row.DOI,
+                       `Projects/Packages Cited`:  split(row.`Projects/Packages Cited`, ' | '),
+                       `Granting Organization A | B | C`:  split(row.`Granting Organization A | B | C`, ' | ')
+                    }) 
+YIELD node
+RETURN node;
+
+/////////////////////////////////////////////IMPORT People
+LOAD CSV WITH HEADERS FROM "https://docs.google.com/spreadsheets/d/e/2PACX-1vSRC8OGwpbeRPYsPLaHPRCFX1-RSfhs8SW1kCfPPXyQovZEd7hstZt_ihj0lsUg9QuL2MnYJ90dttq7/pub?gid=324622033&single=true&output=csv" AS row
+
+CALL apoc.create.node([row.Label], { //Person
+                       PersonName: row.PersonName,
+                       `Person's Associated Projects`: split(row.`Person's Associated Projects`, ' | '),
+                       `Person's Associated Packages`: split(row.`Person's Associated Packages`, ' | '),
+                       URL: row.URL
+                    }) 
+YIELD node
+RETURN node;
+
+
+
+
+//Create Indices
+CREATE INDEX projectsByID FOR (n:Project) ON (n.ProjectID);
+CREATE INDEX packagesByID FOR (n:Package) ON (n.PackageID);
+CREATE INDEX organizationsByID FOR (n:Organization) ON (n.OrganizationID);
+CREATE INDEX initiativesByID FOR (n:Initiative) ON (n.InitiativeID);
+CREATE INDEX personsByName FOR (n:Person) ON (n.PersonName);
+CREATE INDEX papersByName FOR (n:Paper) ON (n.PaperName);
+
+CALL db.awaitIndexes();
+
+
+
+
+
+//create relationships
+
+/////////////////////////////////////////// Project ->
+// Project -> FISCALLY_SPONSORED_BY -> Organization
+MATCH (n0:Project)
+UNWIND n0.`Fiscal Sponsor` as i
+MATCH (n1:Organization)
+WHERE n1.OrganizationID = i
+MERGE (n0)-[:FISCALLY_SPONSORED_BY]->(n1);
+
+// Project -> DEPENDS_ON -> Project
+MATCH (n0:Project)
+UNWIND n0.Dependency as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:DEPENDS_ON]->(n1);
+
+// Project -> DEPENDS_ON -> Package
+MATCH (n0:Project)
+UNWIND n0.Dependency as i
+MATCH (n1:Package)
+WHERE n1.PackageID = i
+MERGE (n0)-[:DEPENDS_ON]->(n1);
+
+// Project -> COMPLEMENTS -> Project
+MATCH (n0:Project)
+UNWIND n0.Complementary as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:COMPLEMENTS]->(n1);
+
+// Project -> ENHANCES -> Project
+MATCH (n0:Project)
+UNWIND n0.Enhancement as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:ENHANCES]->(n1);
+
+// Project <- DOWNSTREAM_OF <- Project
+MATCH (n0:Project)
+UNWIND n0.Downstream as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n1)-[:DOWNSTREAM_OF]->(n0);
+
+// Project <- ALTERNATIVE_TO <- Project
+MATCH (n0:Project)
+UNWIND n0.Alternatives as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n1)-[:DOWNSTREAM_OF]->(n0);
+
+/////////////////////////////////////////// Package ->
+// Package -> AFFILIATED_PROJECT -> Project
+MATCH (n0:Package)
+UNWIND n0.`Project/Package's Affiliated Projects` as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:AFFILIATED_PROJECT]->(n1);
+
+// Package -> DEPENDS_ON -> Package
+MATCH (n0:Package)
+UNWIND n0.Dependency as i
+MATCH (n1:Package)
+WHERE n1.PackageID = i
+MERGE (n0)-[:DEPENDS_ON]->(n1);
+
+// Package -> DEPENDS_ON -> Project
+MATCH (n0:Package)
+UNWIND n0.Dependency as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:DEPENDS_ON]->(n1);
+
+/////////////////////////////////////////// Organization ->
+// Organization -> FISCALLY_SPONSORED_BY -> Organization
+MATCH (n0:Organization)
+UNWIND n0.`Fiscal Sponsor` as i
+MATCH (n1:Organization)
+WHERE n1.OrganizationID = i
+MERGE (n0)-[:FISCALLY_SPONSORED_BY]->(n1);
+
+// Organization -> AFFILIATED_WITH_CONSORTIUM -> Organization
+MATCH (n0:Organization)
+UNWIND n0.`Consortium Affiliation` as i
+MATCH (n1:Organization)
+WHERE n1.OrganizationID = i
+MERGE (n0)-[:AFFILIATED_WITH_CONSORTIUM]->(n1);
+
+
+/////////////////////////////////////////// Initiative ->
+// Initiative -> AFFILIATED_WITH_ORGANIZATION -> Organization
+MATCH (n0:Initiative)
+UNWIND n0.`Affiliated Org` as i
+MATCH (n1:Organization)
+WHERE n1.OrganizationID = i
+MERGE (n0)-[:AFFILIATED_WITH_ORGANIZATION]->(n1);
+
+/////////////////////////////////////////// Person ->
+// Person -> ASSOCIATED_TO_PROJECT -> Project
+MATCH (n0:Person)
+UNWIND n0.`Person's Associated Projects` as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:ASSOCIATED_TO_PROJECT]->(n1);
+
+// Person -> ASSOCIATED_TO_PACKAGE -> Package
+MATCH (n0:Person)
+UNWIND n0.`Person's Associated Packages` as i
+MATCH (n1:Package)
+WHERE n1.PackageID = i
+MERGE (n0)-[:ASSOCIATED_TO_PACKAGE]->(n1);
+
+
+/////////////////////////////////////////// Paper ->
+// Paper -> WRITTEN_BY -> Person
+MATCH (n0:Paper)
+UNWIND n0.Authors as i
+MATCH (n1:Person)
+WHERE n1.PersonName = i
+MERGE (n0)-[:WRITTEN_BY]->(n1);
+
+
+// Paper -> CITES -> Project
+MATCH (n0:Paper)
+UNWIND n0.`Projects/Packages Cited` as i
+MATCH (n1:Project)
+WHERE n1.ProjectID = i
+MERGE (n0)-[:CITES]->(n1);
+
+// Paper -> CITES -> Package
+MATCH (n0:Paper)
+UNWIND n0.`Projects/Packages Cited` as i
+MATCH (n1:Package)
+WHERE n1.PackageID = i
+MERGE (n0)-[:CITES]->(n1);
+
+// Paper -> GRANTING_ORGANIZATION -> Organization
+MATCH (n0:Paper)
+UNWIND n0.`Granting Organization A | B | C` as i
+MATCH (n1:Organization)
+WHERE n1.OrganizationID = i
+MERGE (n0)-[:GRANTING_ORGANIZATION]->(n1);
