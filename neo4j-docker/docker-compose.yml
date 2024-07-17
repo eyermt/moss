@@ -5,8 +5,6 @@ services:
     ports:
       - 7474:7474
       - 7687:7687
-    env_file:
-      - .env
     environment:
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
       - NEO4J_apoc_export_file_enabled=true
