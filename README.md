@@ -8,12 +8,7 @@ MOSS is a project of [OSSci](https://www.opensource.science/), an initiative of 
 > The Map of Open Source Science is a proof of concept and as such, nothing is accurate.
 
 
-## Getting Started
- 1. Clone this repository
- 2. Deploy neo4j locally using Docker
-    - view [neo4j-docker/README.md](./neo4j-docker/README.md)
- 3. load example-data
-    - run [import-db-neo4j]() cypher script from neo4j web interface
+## [Getting Started](./scripts/README.md)
 
 
 ## Goal

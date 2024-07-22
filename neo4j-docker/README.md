@@ -10,3 +10,4 @@
    > Notes: 
    > - The '-d' argument tells Docker to run the containers detached (as a daemon) and is optional.
    > - You may need to use sudo if you have not configured your user to be in the docker group.
+   > - Also, if you find yourself doing this over and over trying to get the password right, make sure to delete the folder created by docker between runs ;)
