@@ -15,13 +15,14 @@ DROP INDEX instByName IF EXISTS;
 //import nodes
 
 /////////////////////////////////////////////IMPORT ALL ELEMENTS
-LOAD CSV WITH HEADERS FROM "" AS row
+LOAD CSV WITH HEADERS FROM "file:///ecosystms_output.csv" AS row
 
-CALL apoc.create.node([row.Type],
-        CASE row.Type
+CALL apoc.create.node([row.Label],
+        CASE row.Label
                 WHEN 'Project' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         Description: row.Description,
+                        Homepage: row.Homepage,
                         //License
                         Language: split(row.Language, ' | '),
                         Dependency: split(row.Dependency, ' | '),
@@ -36,7 +37,7 @@ CALL apoc.create.node([row.Type],
                         Subfield: split(row.Subfield, ' | ')
                 }
                 WHEN 'Package' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         `Project/Package's Affiliated Projects`: split(row.`Project/Package's Affiliated Projects`, ' | '),
                         `Sustaining/Parent`: row.`Sustaining/Parent`,
                         Subfield: split(row.Subfield, ' | '),
@@ -44,7 +45,7 @@ CALL apoc.create.node([row.Type],
                         Dependency: split(row.Dependency, ' | ')
                 }
                 WHEN 'Organization' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         `Consortium Affiliation`: row.`Consortium Affiliation`,
                         `Org Type`: row.`Org Type`,
                         `Focus Area`: split(row.`Focus Area`, ' | '),
@@ -56,16 +57,16 @@ CALL apoc.create.node([row.Type],
                         `Fiscal Sponsor`: row.`Fiscal Sponsor`
                 }
                 WHEN 'Initiative' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         `Affiliated Org`: row.`Affiliated Org`,
                         `Focus Area`: split(row.`Focus Area`, ' | '),
                         `Initiative Description`: row.`Initiative Description`,
                         Tag: row.Tag
                 }
                 WHEN 'Paper' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         Authors: split(row.Authors, ' | '),
-                        //ORCID
+                        ORCID: row.ORCID,
                         `Publication Date`: row.`Publication Date`,
                         Journal: row.Journal,
                         Abstract: row.Abstract,
@@ -75,14 +76,14 @@ CALL apoc.create.node([row.Type],
                         `Sustainable Development Goals`: split(row.`Sustainable Development Goals`, ' | ')
                 }       
                 WHEN 'Person' THEN {
-                        Name: row.Label,
+                        Name: row.Name,
                         `Person's Associated Projects`: split(row.`Person's Associated Projects`, ' | '),
                         `Person's Associated Packages`: split(row.`Person's Associated Packages`, ' | '),
-                        `Person's Associated Organizations`: split(row.`Affiliated Org`, ' | '),
+                        `Person's Affiliated Institutions`: split(row.`Persons Affiliated Institutions`, ' | '),
                         URL: row.URL
                 }
                 ELSE {
-                        Name: row.Label
+                        Name: row.Name
                 }
         END
 ) YIELD node
@@ -219,12 +220,12 @@ WHERE n1.Name = i
 MERGE (n0)-[:ASSOCIATED_TO_PACKAGE]->(n1);
 
 
-// Person -> ASSOCIATED_TO_ORGANIZATION -> Package
+// Person -> AFFILIATED_WITH_INSTITUTION -> Institution
 MATCH (n0:Person)
-UNWIND n0.`Person's Associated Organizations` as i
+UNWIND n0.`Person's Affiliated Institutions` as i
 MATCH (n1:Institution)
 WHERE n1.Name = i
-MERGE (n0)-[:ASSOCIATED_TO_ORGANIZATION]->(n1);
+MERGE (n0)-[:AFFILIATED_WITH_INSTITUTION]->(n1);
 
 
 /////////////////////////////////////////// Paper ->
@@ -265,4 +266,5 @@ UNWIND n0.`Granting Organization A | B | C` as i
 MATCH (n1:Organization)
 WHERE n1.Name = i
 MERGE (n0)-[:GRANTING_ORGANIZATION]->(n1);
+
 

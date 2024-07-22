@@ -20,7 +20,7 @@ sdgSet = set()
 
 projectUrlSet = set()
 headers = {'accept': 'application/json'}
-myFieldnames = ['id', 'type', 'display_name', 'orcid', 'institutions', 'title', 'doi', 'software_mentions', 'authors', 'homepage', 'repository_url', 'sdgs', 'score']
+myFieldnames = ['ID', 'Label', 'Name', 'ORCID', 'Persons Affiliated Institutions', 'DOI', 'Projects/Packages Cited', 'Authors', 'Homepage', 'repository_url', 'Sustainable Development Goals', 'sdg_score']
 
 def processPaper(paperURL):
     paperResponse = requests.get(paperURL, headers=headers)
@@ -47,19 +47,19 @@ def processPaper(paperURL):
                         thisAuthorInstitutions.append(institution['display_name'])
                         if institution["id"] not in institutionSet:
                             institutionSet.add(institution["id"])
-                            rowList.append({'id': institution['id'], 'type': "Institution", 'display_name': institution['display_name']})
+                            rowList.append({'ID': institution['id'], 'Label': "Institution", 'Name': institution['display_name']})
                 thisPaperSDGs = []
                 for sdg in paperDict['openalex_data']['sustainable_development_goals']:
                     thisPaperSDGs.append(sdg['display_name'])
                     if sdg["id"] not in sdgSet:
                         sdgSet.add(sdg["id"])
-                        rowList.append({'id': sdg['id'], 'type': "SDG", 'display_name': sdg['display_name'], 'score': sdg['score']})
+                        rowList.append({'ID': sdg['id'], 'Label': "SDG", 'Name': sdg['display_name'], 'sdg_score': sdg['score']})
 
-            rowList.append({'id': paperDict['openalex_id'], 'type': "Paper", 'title': paperDict['title'], 'doi': paperDict['doi'], 'authors': paperAuthorNames, 'software_mentions': paperMentions, 'sdgs': thisPaperSDGs})
+            rowList.append({'ID': paperDict['openalex_id'], 'Label': "Paper", 'Name': paperDict['title'], 'DOI': paperDict['doi'], 'Authors': " | ".join(paperAuthorNames), 'Projects/Packages Cited': " | ".join(paperMentions), 'Sustainable Development Goals': " | ".join(thisPaperSDGs)})
             authorDict = authorship["author"]
             if authorDict['id'] not in peopleSet:
                     peopleSet.add(authorDict['id'])
-                    rowList.append({'type': "Person"} | authorDict | {'institutions': thisAuthorInstitutions})
+                    rowList.append({'ID': authorDict['id'], 'Label': "Person", 'Name': authorDict['display_name'], 'ORCID': authorDict['orcid'], 'Persons Affiliated Institutions': " | ".join(thisAuthorInstitutions)})
     except json.decoder.JSONDecodeError:
         paperAuthorNames = [] #meaningless
 
@@ -90,7 +90,7 @@ def processPaperMentions(paperMentionsURL):
 
                 if projDict["czi_id"] not in projectSet:
                     projectSet.add(projDict["czi_id"])
-                    rowList.append({'id': projDict["czi_id"], 'type': "Project", 'display_name': projDict["ecosystem"] + ":" + projDict["name"], 'homepage': home, 'repository_url': repo})
+                    rowList.append({'ID': projDict["czi_id"], 'Label': "Project", 'Name': projDict["ecosystem"] + ":" + projDict["name"], 'Homepage': home, 'repository_url': repo})
             except json.decoder.JSONDecodeError:
                 thisPapersMentions = []
     except json.decoder.JSONDecodeError:
@@ -116,7 +116,7 @@ def processProject(projectU):
         repo = ""
 
     projectSet.add(projectDict["czi_id"])
-    rowList.append({'id': projectDict["czi_id"], 'type': "Project", 'display_name': projectDict["ecosystem"] + ":" + projectDict["name"], 'homepage': home, 'repository_url': repo})
+    rowList.append({'ID': projectDict["czi_id"], 'Label': "Project", 'Name': projectDict["ecosystem"] + ":" + projectDict["name"], 'Homepage': home, 'repository_url': repo})
 
     projectMentionsURL = projectDict["mentions_url"] + "?page=1&per_page=1000"
 
@@ -172,7 +172,7 @@ def checkScope():
         mentionsAverage = sum(mentionsCounts) / len(mentionsCounts)
 
     print("With an average of: " + str(mentionsAverage) + " mentions per project")
-    return(mentionsAverage*len(projectUrlSet))
+    return(sum(mentionsCounts))
 
 
 
@@ -185,7 +185,7 @@ processProjects(projectURL)
 
 papersEstimate = checkScope()
 
-continueYN = input("Would you like to continue processing roughly " + str(papersEstimate) + " more papers? y/n: ")
+continueYN = input("Would you like to continue processing " + str(papersEstimate) + " more papers? y/n: ")
 
 if continueYN == 'y':
     projUrlSetCopy = projectUrlSet.copy()
