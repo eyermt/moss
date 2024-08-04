@@ -106,52 +106,55 @@ def processProjects(projectURLs):
 
 def processProject(projectU):
     response = requests.get(projectU, headers=headers)
-    projectDict = response.json()
+    try:
+        projectDict = response.json()
 
-    if projectDict["package"] is not None:
-        home = projectDict["package"]["homepage"]
-        repo = projectDict["package"]["repository_url"]
-    else:
-        home = ""
-        repo = ""
+        if projectDict["package"] is not None:
+            home = projectDict["package"]["homepage"]
+            repo = projectDict["package"]["repository_url"]
+        else:
+            home = ""
+            repo = ""
 
-    projectSet.add(projectDict["czi_id"])
-    rowList.append({'ID': projectDict["czi_id"], 'Label': "Project", 'Name': projectDict["ecosystem"] + ":" + projectDict["name"], 'Homepage': home, 'repository_url': repo})
+        projectSet.add(projectDict["czi_id"])
+        rowList.append({'ID': projectDict["czi_id"], 'Label': "Project", 'Name': projectDict["ecosystem"] + ":" + projectDict["name"], 'Homepage': home, 'repository_url': repo})
 
-    projectMentionsURL = projectDict["mentions_url"] + "?page=1&per_page=1000"
+        projectMentionsURL = projectDict["mentions_url"] + "?page=1&per_page=1000"
 
-    mentionsResponse = requests.get(projectMentionsURL, headers=headers)
-    mentionsDict = mentionsResponse.json()
+        mentionsResponse = requests.get(projectMentionsURL, headers=headers)
+        mentionsDict = mentionsResponse.json()
 
-    print("Querying: " + projectU)
-    print("There are " + mentionsResponse.headers['total-pages'] + " pages of mentions to fetch.")
-    print("For a total of: " + mentionsResponse.headers['total-count'] + " papers")
+        print("Querying: " + projectU)
+        print("There are " + mentionsResponse.headers['total-pages'] + " pages of mentions to fetch.")
+        print("For a total of: " + mentionsResponse.headers['total-count'] + " papers")
 
-    paperURLsList = []
-    totalPages = int(mentionsResponse.headers['total-pages'])
-    pageNum = 1
-    while pageNum <= totalPages:
-        projectMentionsURL = projectDict["mentions_url"] + "?page=" + str(pageNum) + "&per_page=1000"
-        mentionsDict = requests.get(projectMentionsURL, headers=headers).json()
+        paperURLsList = []
+        totalPages = int(mentionsResponse.headers['total-pages'])
+        pageNum = 1
+        while pageNum <= totalPages:
+            projectMentionsURL = projectDict["mentions_url"] + "?page=" + str(pageNum) + "&per_page=1000"
+            mentionsDict = requests.get(projectMentionsURL, headers=headers).json()
 
-        for mention in mentionsDict:
-            paperURLsList.append(mention["paper_url"])
-        pageNum += 1
+            for mention in mentionsDict:
+                paperURLsList.append(mention["paper_url"])
+            pageNum += 1
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(processPaper, paperURL) for paperURL in paperURLsList]
-        paperCounter = 0
-        for future in as_completed(futures):
-            future.result()
-            paperCounter += 1
-            print("Processed paper: " + str(paperCounter) + " of " + mentionsResponse.headers['total-count'])
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(processPaper, paperURL) for paperURL in paperURLsList]
+            paperCounter = 0
+            for future in as_completed(futures):
+                future.result()
+                paperCounter += 1
+                print("Processed paper: " + str(paperCounter) + " of " + mentionsResponse.headers['total-count'])
 
-    with open('ecosystms_output.csv', mode='a', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=myFieldnames)
-        for row in rowList:
-            writer.writerow(row)
-    rowList.clear()
-    print("All rows appended to CSV file successfully!")
+        with open('ecosystms_output.csv', mode='a', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=myFieldnames)
+            for row in rowList:
+                writer.writerow(row)
+        rowList.clear()
+        print("All rows appended to CSV file successfully!")
+    except json.decoder.JSONDecodeError:
+        rowList.clear()
 
 
 def checkScope():
@@ -159,19 +162,22 @@ def checkScope():
 
     mentionsCounts = []
 
-    for projectU in projectUrlSet:
-        response = requests.get(projectU, headers=headers)
-        thisProjectDict = response.json()
+    try:
+        for projectU in projectUrlSet:
+            response = requests.get(projectU, headers=headers)
+            thisProjectDict = response.json()
 
-        thisProjectMentionsURL = thisProjectDict["mentions_url"] + "?page=1&per_page=1"
+            thisProjectMentionsURL = thisProjectDict["mentions_url"] + "?page=1&per_page=1"
 
-        mentionsResponse = requests.get(thisProjectMentionsURL, headers=headers)
-        mentionsDict = mentionsResponse.json()
+            mentionsResponse = requests.get(thisProjectMentionsURL, headers=headers)
+            mentionsDict = mentionsResponse.json()
 
-        mentionsCounts.append(int(mentionsResponse.headers['total-count']))
-        mentionsAverage = sum(mentionsCounts) / len(mentionsCounts)
+            mentionsCounts.append(int(mentionsResponse.headers['total-count']))
+            mentionsAverage = sum(mentionsCounts) / len(mentionsCounts)
 
-    print("With an average of: " + str(mentionsAverage) + " mentions per project")
+        print("With an average of: " + str(mentionsAverage) + " mentions per project")
+    except json.decoder.JSONDecodeError:
+        mentionsCounts = [0]
     return(sum(mentionsCounts))
 
 
