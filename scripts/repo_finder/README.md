@@ -19,7 +19,6 @@ This script analyzes GitHub repositories associated with a university or keyword
   - [Activity Score](#activity-score)
 - [Data Collected](#data-collected)
 - [Contributing](#contributing)
-- [License](#license)
 
 ---
 
