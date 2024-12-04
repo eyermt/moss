@@ -1,3 +1,7 @@
+This script is very much a work in progress. Contributions are highly encourged.
+
+This script was developed using Large Language Models (LLMs) with extensive human design and prompting. While the code was generated through AI assistance, it was carefully crafted and guided by human expertise to align with the project's objectives. Users are encouraged to thoroughly assess and test the script to ensure it meets their specific needs and complies with all relevant policies and regulations. We disclaim any liability for errors, omissions, or any issues arising from the use of this script.
+
 # University Repository Analysis Script
 
 This script analyzing GitHub repositories associated with a university or keyword. It helps identify repositories affiliated with the university or keyword, evaluates their activity levels, and categorizes them based on various metrics. The script is designed to assist universities in discovering and assessing open source projects developed by their students, faculty, or associated organizations.
