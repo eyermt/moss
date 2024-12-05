@@ -6,6 +6,10 @@ This script was developed using Large Language Models (LLMs) with extensive huma
 
 This script collects and analyzes data from GitHub repositories and the OpenAlex API. It extracts the DOI (Digital Object Identifier) from a specified GitHub repository, retrieves detailed information about the corresponding academic paper from OpenAlex, and explores the citation network to gather related papers, authors, institutions, topics, and projects. The script aims to create a comprehensive dataset for academic and research purposes.
 
+You can explore a test visualization of this script run on [OpenFold](https://github.com/aqlaboratory/openfold) at: https://kumu.io/jstarr/omsf
+
+**_Note:_** The test visualization is memory intensive and is likely to crash often if run on a machine with under 128gb RAM.
+
 ---
 
 ## Table of Contents
