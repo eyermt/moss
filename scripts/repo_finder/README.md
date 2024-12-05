@@ -4,7 +4,7 @@ This script was developed using Large Language Models (LLMs) with extensive huma
 
 # University Repository Analysis Script
 
-This script analyzing GitHub repositories associated with a university or keyword. It helps identify repositories affiliated with the university or keyword, evaluates their activity levels, and categorizes them based on various metrics. The script is designed to assist universities in discovering and assessing open source projects developed by their students, faculty, or associated organizations.
+This script analyzes GitHub repositories associated with a university or keyword. It helps identify repositories affiliated with the university or keyword, evaluates their activity levels, and categorizes them based on various metrics. The script is designed to assist universities in discovering and assessing open source projects developed by their students, faculty, or associated organizations.
 
 ---
 
@@ -19,7 +19,6 @@ This script analyzing GitHub repositories associated with a university or keywor
   - [Activity Score](#activity-score)
 - [Data Collected](#data-collected)
 - [Contributing](#contributing)
-- [License](#license)
 
 ---
 
