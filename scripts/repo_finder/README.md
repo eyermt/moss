@@ -391,3 +391,5 @@ Contributions are welcome! Please follow these steps:
 ---
 
 Feel free to reach out or create an issue if you have any questions or need assistance with using the script.
+
+Contact: jon@numfocus.org
