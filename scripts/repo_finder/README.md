@@ -6,6 +6,10 @@ This script was developed using Large Language Models (LLMs) with extensive huma
 
 This script analyzes GitHub repositories associated with a university or keyword. It helps identify repositories affiliated with the university or keyword, evaluates their activity levels, and categorizes them based on various metrics. The script is designed to assist universities in discovering and assessing open source projects developed by their students, faculty, or associated organizations.
 
+You can explore a test visualization of this script run on [OpenFold](https://github.com/aqlaboratory/openfold) at: https://kumu.io/jstarr/omsf
+
+**_Note:_** The test visualization is memory intensive and is likely to crash often if run on a machine with under 128gb RAM.
+
 ---
 
 ## Table of Contents
