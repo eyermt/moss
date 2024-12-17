@@ -17,10 +17,12 @@ peopleSet = set()
 paperSet = set()
 projectSet = set()
 sdgSet = set()
+conceptSet = set()
+domainSet = set()
 
 projectUrlSet = set()
 headers = {'accept': 'application/json'}
-myFieldnames = ['ID', 'Label', 'Name', 'ORCID', 'Persons Affiliated Institutions', 'DOI', 'Projects/Packages Cited', 'Authors', 'Homepage', 'repository_url', 'Sustainable Development Goals', 'sdg_score']
+myFieldnames = ['ID', 'Label', 'Name', 'ORCID', 'Persons Affiliated Institutions', 'DOI', 'Projects/Packages Cited', 'Authors', 'Homepage', 'repository_url', 'Sustainable Development Goals', 'sdg_score', 'Keywords', 'Concepts', 'Wikidata', 'Concept_level', 'Domains', 'Is_major_topic']
 
 def processPaper(paperURL):
     paperResponse = requests.get(paperURL, headers=headers)
@@ -54,8 +56,24 @@ def processPaper(paperURL):
                     if sdg["id"] not in sdgSet:
                         sdgSet.add(sdg["id"])
                         rowList.append({'ID': sdg['id'], 'Label': "SDG", 'Name': sdg['display_name'], 'sdg_score': sdg['score']})
+                #thisPaperKeywords = []
+                #for key in paperDict['openalex_data']['keywords']:
+                #    thisPaperKeywords.append(key['keyword'])
+                thisPaperConcepts = []
+                for concept in paperDict['openalex_data']['concepts']:
+                    thisPaperConcepts.append(concept['display_name'])
+                    if concept["id"] not in conceptSet:
+                        conceptSet.add(concept["id"])
+                        rowList.append({'ID': concept['id'], 'Label': "Concept", 'Name': concept['display_name'], 'Wikidata': concept['wikidata'], 'Concept_level': concept['level'] })
+                thisPaperDomains = []
+                for domain in paperDict['openalex_data']['mesh']:
+                    thisPaperDomains.append(domain['descriptor_name'])
+                    if domain["descriptor_ui"] not in conceptSet:
+                        domainSet.add(domain["descriptor_ui"])
+                        rowList.append({'ID': domain['descriptor_ui'], 'Label': "Domain", 'Name': domain['descriptor_name'], 'Is_major_topic': domain['is_major_topic'] })
 
-            rowList.append({'ID': paperDict['openalex_id'], 'Label': "Paper", 'Name': paperDict['title'], 'DOI': paperDict['doi'], 'Authors': " | ".join(paperAuthorNames), 'Projects/Packages Cited': " | ".join(paperMentions), 'Sustainable Development Goals': " | ".join(thisPaperSDGs)})
+
+            rowList.append({'ID': paperDict['openalex_id'], 'Label': "Paper", 'Name': paperDict['title'], 'DOI': paperDict['doi'], 'Authors': " | ".join(paperAuthorNames), 'Projects/Packages Cited': " | ".join(paperMentions), 'Sustainable Development Goals': " | ".join(thisPaperSDGs),  'Concepts': " | ".join(thisPaperConcepts), 'Domains': " | ".join(thisPaperDomains)}) #'Keywords': " | ".join(thisPaperKeywords),
             authorDict = authorship["author"]
             if authorDict['id'] not in peopleSet:
                     peopleSet.add(authorDict['id'])
@@ -163,6 +181,7 @@ def checkScope():
     mentionsCounts = []
 
     try:
+        mentionsAverage = 0
         for projectU in projectUrlSet:
             response = requests.get(projectU, headers=headers)
             thisProjectDict = response.json()
