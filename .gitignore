@@ -1,5 +1,13 @@
 .venv
 
+# Python virtual environment (venv)
+bin/
+lib/
+lib64
+pyvenv.cfg
+
+
+
 .pdm-python
 .DS_Store
 
