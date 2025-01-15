@@ -309,10 +309,6 @@ def process_project(project_u):
                 print(
                     f"Processed paper: {paper_counter} of {mentions_response.headers['total-count']}"
                 )
-
-        # Write processed data to the CSV file
-        write_to_csv()
-        print('All rows appended to CSV file successfully!')
     except requests.exceptions.RequestException as e:
         # Handle request exceptions for projects
         print(f'Request failed for project {project_u}: {e}')
@@ -380,3 +376,8 @@ continue_yn = input(
 if continue_yn == 'y':
     project_url_set_copy = project_url_set.copy()
     process_projects(project_url_set_copy)
+
+
+# Write processed data to the CSV file
+write_to_csv()
+print('All rows appended to CSV file successfully!')
