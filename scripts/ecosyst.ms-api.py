@@ -1,8 +1,15 @@
 import csv
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
 
 import requests
+
+print("""Example URLs: \n
+        https://papers.ecosyste.ms/api/v1/projects/pypi/scikit-learn \n
+        https://papers.ecosyste.ms/api/v1/projects/pypi/keras \n
+        https://papers.ecosyste.ms/api/v1/projects/cran/OpenML \n
+        """)
 
 # Prompt for project URL(s)
 project_url = input(
@@ -16,7 +23,7 @@ project_mentions_yn = input(
 )
 
 # Declare global variables
-row_list = []
+row_list = Queue()
 institution_set = set()
 people_set = set()
 paper_set = set()
@@ -49,31 +56,46 @@ csv_field_names = [
 
 
 def process_paper(paper_url):
-    paper_response = requests.get(paper_url, headers=headers)
     try:
+        paper_response = requests.get(paper_url, headers=headers, timeout=10)
         paper_dict = paper_response.json()
 
         paper_author_names = []
-        if paper_dict['openalex_data'] is not None:
+        if paper_dict['openalex_data']:
             for authorship in paper_dict['openalex_data']['authorships']:
                 paper_author_names.append(authorship['author']['display_name'])
 
-        if project_mentions_yn == 'y':
-            paper_mentions = process_paper_mentions(paper_dict['mentions_url'])
-        else:
-            paper_mentions = ''
+                author_dict = authorship['author']
+                if author_dict['id'] not in people_set:
+                    people_set.add(author_dict['id'])
+                    row_list.put(
+                        {
+                            'ID': author_dict['id'],
+                            'Label': 'Person',
+                            'Name': author_dict['display_name'],
+                            'ORCID': author_dict['orcid'],
+                            'Persons Affiliated Institutions': ' | '.join(
+                                inst['display_name']
+                                for inst in authorship['institutions']
+                            ),
+                        }
+                    )
+
+        paper_mentions = (
+            process_paper_mentions(paper_dict['mentions_url'])
+            if project_mentions_yn == 'y'
+            else []
+        )
 
         if paper_dict['openalex_id'] not in paper_set:
             paper_set.add(paper_dict['openalex_id'])
 
-            if paper_dict['openalex_data'] is not None:
+            if paper_dict['openalex_data']:
                 for authorship in paper_dict['openalex_data']['authorships']:
-                    author_institutions = []
                     for institution in authorship['institutions']:
-                        author_institutions.append(institution['display_name'])
                         if institution['id'] not in institution_set:
                             institution_set.add(institution['id'])
-                            row_list.append(
+                            row_list.put(
                                 {
                                     'ID': institution['id'],
                                     'Label': 'Institution',
@@ -85,7 +107,7 @@ def process_paper(paper_url):
                     paper_sdgs.append(sdg['display_name'])
                     if sdg['id'] not in sdg_set:
                         sdg_set.add(sdg['id'])
-                        row_list.append(
+                        row_list.put(
                             {
                                 'ID': sdg['id'],
                                 'Label': 'SDG',
@@ -98,7 +120,7 @@ def process_paper(paper_url):
                     paper_concepts.append(concept['display_name'])
                     if concept['id'] not in concept_set:
                         concept_set.add(concept['id'])
-                        row_list.append(
+                        row_list.put(
                             {
                                 'ID': concept['id'],
                                 'Label': 'Concept',
@@ -110,9 +132,9 @@ def process_paper(paper_url):
                 paper_domains = []
                 for domain in paper_dict['openalex_data']['mesh']:
                     paper_domains.append(domain['descriptor_name'])
-                    if domain['descriptor_ui'] not in concept_set:
+                    if domain['descriptor_ui'] not in domain_set:
                         domain_set.add(domain['descriptor_ui'])
-                        row_list.append(
+                        row_list.put(
                             {
                                 'ID': domain['descriptor_ui'],
                                 'Label': 'Domain',
@@ -121,7 +143,7 @@ def process_paper(paper_url):
                             }
                         )
 
-            row_list.append(
+            row_list.put(
                 {
                     'ID': paper_dict['openalex_id'],
                     'Label': 'Paper',
@@ -134,43 +156,35 @@ def process_paper(paper_url):
                     'Domains': ' | '.join(paper_domains),
                 }
             )
-            author_dict = authorship['author']
-            if author_dict['id'] not in people_set:
-                people_set.add(author_dict['id'])
-                row_list.append(
-                    {
-                        'ID': author_dict['id'],
-                        'Label': 'Person',
-                        'Name': author_dict['display_name'],
-                        'ORCID': author_dict['orcid'],
-                        'Persons Affiliated Institutions': ' | '.join(
-                            author_institutions
-                        ),
-                    }
-                )
+    except requests.exceptions.RequestException as e:
+        print(f'Request failed for paper {paper_url}: {e}')
     except json.decoder.JSONDecodeError:
-        paper_author_names = []  # meaningless
+        print(f'JSON decode error for paper {paper_url}')
 
 
 def process_paper_mentions(paper_mentions_url):
-    paper_mentions_response = requests.get(paper_mentions_url, headers=headers)
+    paper_mentions = []
     try:
+        paper_mentions_response = requests.get(
+            paper_mentions_url, headers=headers, timeout=10
+        )
         paper_mentions_dict = paper_mentions_response.json()
 
-        paper_mentions_list = []
-        for paper_mention in paper_mentions_dict:
-            paper_mentions_list.append(paper_mention['project_url'])
-            project_url_set.add(paper_mention['project_url'])
+        paper_mentions_list = [
+            paper_mention['project_url'] for paper_mention in paper_mentions_dict
+        ]
+        project_url_set.update(paper_mentions_list)
 
-        paper_mentions = []
         for project_url in paper_mentions_list:
-            project_response = requests.get(project_url, headers=headers)
             try:
+                project_response = requests.get(
+                    project_url, headers=headers, timeout=10
+                )
                 proj_dict = project_response.json()
 
-                paper_mentions.append(proj_dict['ecosystem'] + ':' + proj_dict['name'])
+                paper_mentions.append(f"{proj_dict['ecosystem']}:{proj_dict['name']}")
 
-                if proj_dict['package'] is not None:
+                if proj_dict['package']:
                     home = proj_dict['package']['homepage']
                     repo = proj_dict['package']['repository_url']
                 else:
@@ -179,25 +193,29 @@ def process_paper_mentions(paper_mentions_url):
 
                 if proj_dict['czi_id'] not in project_set:
                     project_set.add(proj_dict['czi_id'])
-                    row_list.append(
+                    row_list.put(
                         {
                             'ID': proj_dict['czi_id'],
                             'Label': 'Project',
-                            'Name': proj_dict['ecosystem'] + ':' + proj_dict['name'],
+                            'Name': f"{proj_dict['ecosystem']}:{proj_dict['name']}",
                             'Homepage': home,
                             'repository_url': repo,
                         }
                     )
+            except requests.exceptions.RequestException as e:
+                print(f'Request failed for project {project_url}: {e}')
             except json.decoder.JSONDecodeError:
-                paper_mentions = []
+                print(f'JSON decode error for project {project_url}')
+    except requests.exceptions.RequestException as e:
+        print(f'Request failed for mentions {paper_mentions_url}: {e}')
     except json.decoder.JSONDecodeError:
-        paper_mentions = []
+        print(f'JSON decode error for mentions {paper_mentions_url}')
 
     return paper_mentions
 
 
 def process_projects(project_urls):
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         futures = [
             executor.submit(process_project, project_u) for project_u in project_urls
         ]
@@ -206,11 +224,11 @@ def process_projects(project_urls):
 
 
 def process_project(project_u):
-    response = requests.get(project_u, headers=headers)
     try:
+        response = requests.get(project_u, headers=headers, timeout=10)
         project_dict = response.json()
 
-        if project_dict['package'] is not None:
+        if project_dict['package']:
             home = project_dict['package']['homepage']
             repo = project_dict['package']['repository_url']
         else:
@@ -218,46 +236,42 @@ def process_project(project_u):
             repo = ''
 
         project_set.add(project_dict['czi_id'])
-        row_list.append(
+        row_list.put(
             {
                 'ID': project_dict['czi_id'],
                 'Label': 'Project',
-                'Name': project_dict['ecosystem'] + ':' + project_dict['name'],
+                'Name': f"{project_dict['ecosystem']}:{project_dict['name']}",
                 'Homepage': home,
                 'repository_url': repo,
             }
         )
 
-        project_mentions_url = project_dict['mentions_url'] + '?page=1&per_page=1000'
+        project_mentions_url = f"{project_dict['mentions_url']}?page=1&per_page=1000"
 
-        mentions_response = requests.get(project_mentions_url, headers=headers)
+        mentions_response = requests.get(
+            project_mentions_url, headers=headers, timeout=10
+        )
         mentions_dict = mentions_response.json()
 
-        print('Querying: ' + project_u)
+        print(f'Querying: {project_u}')
         print(
-            'There are '
-            + mentions_response.headers['total-pages']
-            + ' pages of mentions to fetch.'
+            f"There are {mentions_response.headers['total-pages']} pages of mentions to fetch."
         )
-        print('For a total of: ' + mentions_response.headers['total-count'] + ' papers')
+        print(f"For a total of: {mentions_response.headers['total-count']} papers")
 
         paper_urls_list = []
         total_pages = int(mentions_response.headers['total-pages'])
-        page_num = 1
-        while page_num <= total_pages:
+        for page_num in range(1, total_pages + 1):
             project_mentions_url = (
-                project_dict['mentions_url']
-                + '?page='
-                + str(page_num)
-                + '&per_page=1000'
+                f"{project_dict['mentions_url']}?page={page_num}&per_page=1000"
             )
-            mentions_dict = requests.get(project_mentions_url, headers=headers).json()
+            mentions_dict = requests.get(
+                project_mentions_url, headers=headers, timeout=10
+            ).json()
 
-            for mention in mentions_dict:
-                paper_urls_list.append(mention['paper_url'])
-            page_num += 1
+            paper_urls_list.extend([mention['paper_url'] for mention in mentions_dict])
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             futures = [
                 executor.submit(process_paper, paper_url)
                 for paper_url in paper_urls_list
@@ -267,42 +281,48 @@ def process_project(project_u):
                 future.result()
                 paper_counter += 1
                 print(
-                    'Processed paper: '
-                    + str(paper_counter)
-                    + ' of '
-                    + mentions_response.headers['total-count']
+                    f"Processed paper: {paper_counter} of {mentions_response.headers['total-count']}"
                 )
 
-        with open('ecosystms_output.csv', mode='a', newline='') as file:
-            writer = csv.DictWriter(file, fieldnames=csv_field_names)
-            for row in row_list:
-                writer.writerow(row)
-        row_list.clear()
+        write_to_csv()
         print('All rows appended to CSV file successfully!')
+    except requests.exceptions.RequestException as e:
+        print(f'Request failed for project {project_u}: {e}')
     except json.decoder.JSONDecodeError:
-        row_list.clear()
+        print(f'JSON decode error for project {project_u}')
+
+
+def write_to_csv():
+    with open('ecosystms_output.csv', mode='a', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=csv_field_names)
+        while not row_list.empty():
+            writer.writerow(row_list.get())
 
 
 def check_scope():
-    print('This project has ' + str(len(project_url_set)) + ' co-mentioned projects')
+    print(f'This project has {len(project_url_set)} co-mentioned projects')
 
     mentions_counts = []
 
     try:
-        mentions_average = 0
         for project_u in project_url_set:
-            response = requests.get(project_u, headers=headers)
+            response = requests.get(project_u, headers=headers, timeout=10)
             project_dict = response.json()
 
-            project_mentions_url = project_dict['mentions_url'] + '?page=1&per_page=1'
+            project_mentions_url = f"{project_dict['mentions_url']}?page=1&per_page=1"
 
-            mentions_response = requests.get(project_mentions_url, headers=headers)
+            mentions_response = requests.get(
+                project_mentions_url, headers=headers, timeout=10
+            )
             mentions_counts.append(int(mentions_response.headers['total-count']))
-            mentions_average = sum(mentions_counts) / len(mentions_counts)
 
-        print('With an average of: ' + str(mentions_average) + ' mentions per project')
+        mentions_average = sum(mentions_counts) / len(mentions_counts)
+        print(f'With an average of: {mentions_average} mentions per project')
+    except requests.exceptions.RequestException as e:
+        print(f'Request failed during scope check: {e}')
     except json.decoder.JSONDecodeError:
-        mentions_counts = [0]
+        print('JSON decode error during scope check')
+
     return sum(mentions_counts)
 
 
@@ -313,12 +333,11 @@ with open('ecosystms_output.csv', mode='w', newline='') as file:
 
 process_projects(project_url)
 
-papers_estimate = check_scope()
+# papers_estimate = check_scope()
+papers_estimate = '?'
 
 continue_yn = input(
-    'Would you like to continue processing '
-    + str(papers_estimate)
-    + ' more papers? y/n: '
+    f'Would you like to continue processing {papers_estimate} more papers? y/n: '
 )
 
 if continue_yn == 'y':
