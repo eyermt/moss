@@ -17,11 +17,6 @@ project_url = input(
     'Please enter the ecosyste.ms URL for your project of interest: '
 ).split()
 
-# Prompt the user to decide whether to include nodes for projects mentioned in related papers
-project_mentions_yn = input(
-    'Would you like to create nodes for every project mentioned in papers that mention your project? y/n: '
-)
-
 # Initialize global variables for storing unique entities and rows for CSV output
 row_list = Queue()  # Queue to store rows for the CSV file
 institution_set = set()  # Set to keep track of unique institutions
@@ -86,12 +81,8 @@ def process_paper(paper_url):
                         }
                     )
 
-        # Optionally process paper mentions based on user input
-        paper_mentions = (
-            process_paper_mentions(paper_dict['mentions_url'])
-            if project_mentions_yn == 'y'
-            else []
-        )
+        # process paper mentions and collect list of comentioned projects (project_ursl)
+        paper_mentions = process_paper_mentions(paper_dict['mentions_url'])
 
         # Add the paper to the set and row list if it's not already present
         if paper_dict['openalex_id'] not in paper_set:
@@ -150,21 +141,20 @@ def process_paper(paper_url):
                                 'Is_major_topic': domain['is_major_topic'],
                             }
                         )
-
-            # Add the paper information to the row list for the CSV
-            row_list.put(
-                {
-                    'ID': paper_dict['openalex_id'],
-                    'Label': 'Paper',
-                    'Name': paper_dict['title'],
-                    'DOI': paper_dict['doi'],
-                    'Authors': ' | '.join(paper_author_names),
-                    'Projects/Packages Cited': ' | '.join(paper_mentions),
-                    'Sustainable Development Goals': ' | '.join(paper_sdgs),
-                    'Concepts': ' | '.join(paper_concepts),
-                    'Domains': ' | '.join(paper_domains),
-                }
-            )
+                # Add the paper information to the row list for the CSV
+                row_list.put(
+                    {
+                        'ID': paper_dict['openalex_id'],
+                        'Label': 'Paper',
+                        'Name': paper_dict['title'],
+                        'DOI': paper_dict['doi'],
+                        'Authors': ' | '.join(paper_author_names),
+                        'Projects/Packages Cited': ' | '.join(paper_mentions),
+                        'Sustainable Development Goals': ' | '.join(paper_sdgs),
+                        'Concepts': ' | '.join(paper_concepts),
+                        'Domains': ' | '.join(paper_domains),
+                    }
+                )
     except requests.exceptions.RequestException as e:
         # Handle request exceptions
         print(f'Request failed for paper {paper_url}: {e}')
@@ -365,7 +355,7 @@ with open('ecosystms_output.csv', mode='w', newline='') as file:
 process_projects(project_url)
 
 # Estimate the number of papers to be processed if the user chooses to continue
-papers_estimate = '?'
+papers_estimate = check_scope()
 
 # Ask the user if they want to continue processing more papers
 continue_yn = input(
