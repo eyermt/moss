@@ -17,6 +17,25 @@ readme = "README.md"
 license = {text = "MIT"}
 
 
+[tool.ruff]
+line-length = 88
+lint.select = [
+    "F",  # pyflakes rules
+    "E",  # pycodestyle error rules
+    "W",  # pycodestyle warning rules
+    "B",  # flake8-bugbear rules
+    "I",  # isort rules
+]
+lint.ignore = [
+    "E501",  # line-too-long
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "single"
+
+
+
 [tool.pdm]
 distribution = false
 

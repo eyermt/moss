@@ -11,6 +11,8 @@ DROP INDEX initiativesByID IF EXISTS;
 DROP INDEX personsByName IF EXISTS;
 DROP INDEX papersByName IF EXISTS;
 DROP INDEX instByName IF EXISTS;
+DROP INDEX conceptByName IF EXISTS;
+DROP INDEX domainByName IF EXISTS;
 
 //import nodes
 
@@ -73,7 +75,9 @@ CALL apoc.create.node([row.Label],
                         DOI: row.DOI,
                         `Projects/Packages Cited`:  split(row.`Projects/Packages Cited`, ' | '),
                         `Granting Organization A | B | C`:  split(row.`Granting Organization A | B | C`, ' | '),
-                        `Sustainable Development Goals`: split(row.`Sustainable Development Goals`, ' | ')
+                        `Sustainable Development Goals`: split(row.`Sustainable Development Goals`, ' | '),
+                        Concepts: split(row.Concepts, ' | '),
+                        Domains: split(row.Domains, ' | ')
                 }       
                 WHEN 'Person' THEN {
                         Name: row.Name,
@@ -81,6 +85,17 @@ CALL apoc.create.node([row.Label],
                         `Person's Associated Packages`: split(row.`Person's Associated Packages`, ' | '),
                         `Person's Affiliated Institutions`: split(row.`Persons Affiliated Institutions`, ' | '),
                         URL: row.URL
+                }                
+                WHEN 'Concept' THEN {
+                        Name: row.Name,
+                        Id: row.ID,
+                        Wikidata_ID: row.Wikidata,
+                        Level: row.Concept_level                        
+                }
+                WHEN 'Domain' THEN {
+                        Name: row.Name,
+                        Id: row.ID,
+                        `Is major topic`: row.Is_major_topic                       
                 }
                 ELSE {
                         Name: row.Name
@@ -100,6 +115,8 @@ CREATE INDEX initiativesByID FOR (n:Initiative) ON (n.Name);
 CREATE INDEX personsByName FOR (n:Person) ON (n.Name);
 CREATE INDEX papersByName FOR (n:Paper) ON (n.Name);
 CREATE INDEX instByName FOR (n:Institution) ON (n.Name);
+CREATE INDEX conceptByName FOR (n:Concept) ON (n.Name);
+CREATE INDEX domainByName FOR (n:Domain) ON (n.Name);
 CALL db.awaitIndexes();
 
 
@@ -258,6 +275,19 @@ MATCH (n1:SDG)
 WHERE n1.Name = i
 MERGE (n0)-[:ADDRESSES]->(n1);
 
+// Paper -> CONCEPTUALIZE -> Concept
+MATCH (n0:Paper)
+UNWIND n0.Concepts as i
+MATCH (n1:Concept)
+WHERE n1.Name = i
+MERGE (n0)-[:CONCEPTUALIZE]->(n1);
+
+// Paper -> IN_DOMAIN -> Domain
+MATCH (n0:Paper)
+UNWIND n0.Domains as i
+MATCH (n1:Domain)
+WHERE n1.Name = i
+MERGE (n0)-[:IN_DOMAIN]->(n1);
 
 
 // Paper -> GRANTING_ORGANIZATION -> Organization
