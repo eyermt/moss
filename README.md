@@ -21,6 +21,7 @@ To start the frontend(s), of which the primary web-based one can be found in pro
 
 ## File Structure
 
+```
 ├── CONTRIBUTING.md **Outlines how to contribute to the project. Still under construction.**
 ├── LICENSE **Standard Apache2 license.**
 ├── README.md **Information about this repository.**
@@ -44,7 +45,7 @@ To start the frontend(s), of which the primary web-based one can be found in pro
 │   └── frontends
 │       └── moss-react-app **A standalone react-based website "spoke" which makes RESTful API calls to the backend "hub"**
 └── tests **A directory/module which contains all unit/integration tests for src/**
-
+```
 ## Contributing
 
 We are still in the process of writing up all our formal procedures on how to contribute code to this repository. A rough draft is located [here](CONTRIBUTING.md) While we accept outside pull requests, the best way to get your contribution accepted is to contact Jon Starr (jring-o) and he can connect you with our weekly technical meetings and give you a brief orientation.
