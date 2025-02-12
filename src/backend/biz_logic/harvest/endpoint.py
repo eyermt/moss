@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from hex.persistence.db_session import DBSession
-from hex.biz_logic.harvest.harvest_crud_types import CreateHarvest, UpdateHarvest
+from src.backend.persistence.db_session import DBSession
+from src.backend.biz_logic.harvest.harvest_crud_types import CreateHarvest, UpdateHarvest
 from datetime import datetime
 from random import random
 
